@@ -36,7 +36,7 @@ export default function DeerForm() {
 
     useFocusEffect(
         useCallback(() => {
-            const paramDeerId = useLocalSearchParams();
+            const paramDeerId = "useLocalSearchParams()";
             const updateDeerId = typeof paramDeerId === 'string' ? paramDeerId : "";
 
             setUpdateDeerId(updateDeerId);
