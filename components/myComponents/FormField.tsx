@@ -84,10 +84,13 @@ export default function FormField({ FieldInfo, Form, SetFormAbove }: FormFieldPr
 
         case Field.Dec:
 
-            const handleChangeDec = (e: any) => {
+            const [decStringValue, setdecStringValue] = useState<string>(value != null ? value.toString() : '');
+
+            const handleChangeDec = (e: string) => {
 
                 if (e == "" || e == null) {
-                    handleChange(e);
+                    handleChange(null);
+                    setdecStringValue("");
                     return;
                 }
 
@@ -103,14 +106,17 @@ export default function FormField({ FieldInfo, Form, SetFormAbove }: FormFieldPr
                     return;
                 }
 
-                handleChange(float);
+                setdecStringValue(e);
+                if (!isNaN(float)) {
+                    handleChange(float);
+                }
             };
 
             picker = (
                 <View className="w-20 h-16 px-4 bg-black-100 rounded-2xl border-2 border-black-200 focus:border-secondary flex flex-row items-center">
                     <TextInput
                         className="flex-1 text-white font-psemibold text-base"
-                        value={value != null ? value.toString() : ''}
+                        value={decStringValue}
                         onChangeText={handleChangeDec}
                         keyboardType="decimal-pad"
                     />

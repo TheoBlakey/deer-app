@@ -11,6 +11,8 @@ interface GlobalContextType {
     user: Models.Document | null;
     setUser: React.Dispatch<React.SetStateAction<Models.Document | null>>;
     loading: boolean;
+    globalDeerId: string;
+    setGlobalDeerId: React.Dispatch<React.SetStateAction<string>>;
 }
 
 // Create a context with a default value
@@ -27,9 +29,11 @@ export const useGlobalContext = () => {
 
 // Define the provider component
 const GlobalProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+
     const [isLogged, setIsLogged] = useState(false);
     const [user, setUser] = useState<Models.Document | null>(null);
     const [loading, setLoading] = useState(true);
+    const [globalDeerId, setGlobalDeerId] = useState("");
 
     useEffect(() => {
         getCurrentUser()
@@ -43,7 +47,7 @@ const GlobalProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
                 }
             })
             .catch((error) => {
-                console.log(error);
+                // .log(error);
             })
             .finally(() => {
                 setLoading(false);
@@ -53,11 +57,10 @@ const GlobalProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     return (
         <GlobalContext.Provider
             value={{
-                isLogged,
-                setIsLogged,
-                user,
-                setUser,
-                loading,
+                isLogged, setIsLogged,
+                user, setUser,
+                globalDeerId, setGlobalDeerId,
+                loading
             }}
         >
             {children}

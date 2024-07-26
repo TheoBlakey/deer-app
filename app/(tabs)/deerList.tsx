@@ -17,14 +17,13 @@ import CustomScreenWrapper from "@/components/myComponents/CustomScreenWrapper";
 export default function DeerList() {
 
     const [deerDocumentList, setDeerDocumentList] = useState<Models.Document[]>([]);
-    const User = useGlobalContext();
-    const [loadingDeer, setLoadingDeer] = useState<boolean>(false);
+    const [loadingDeer, setLoadingDeer,] = useState<boolean>(false);
+    const { user, setGlobalDeerId, globalDeerId } = useGlobalContext();
 
     const fetchDeerList = async () => {
         setLoadingDeer(true);
 
-        const deerDocuments = await getDocumentsByUserIdAppWrite(User.user?.$id ?? "", Collection.deer);
-        console.log(deerDocuments[0])
+        const deerDocuments = await getDocumentsByUserIdAppWrite(user?.$id ?? "", Collection.deer);
         setDeerDocumentList(deerDocuments);
 
         setLoadingDeer(false);
@@ -34,9 +33,26 @@ export default function DeerList() {
         useCallback(() => {
             fetchDeerList();
             return () => {
-                // console.log('Screen is unfocused');
+                // Cleanup if needed when screen is unfocused
             };
-        }, []))
+        }, [])
+    );
+
+    useFocusEffect(
+        useCallback(() => {
+            // console.log("id now" + globalDeerId);
+            if (globalDeerId != "") {
+                router.push({
+                    pathname: '/deerForm',
+                    // params: { paramDeerId: globalDeerId }
+                });
+
+            }
+            return () => {
+                // Cleanup if needed when screen is unfocused
+            };
+        }, [globalDeerId])
+    );
 
 
     // if (loadingDeer) {
@@ -70,24 +86,21 @@ export default function DeerList() {
         </View>
     );
 
+
     const renderDeerRow = (deer: any) => (
         <TouchableOpacity
             onPress={() => {
-                router.push({
-                    pathname: '/deerForm',
-                    params: { paramDeerId: deer.$id }
-                });
+                setGlobalDeerId(deer.$id)
             }}
             activeOpacity={0.2}
             className="flex-row border-b border-gray-300 py-2.5"
+            key={deer.$id}
         >
-
             {tableFields.map((field) => (
                 <View key={field.key} className="flex-1 items-center">
                     <Text className="text-white text-l font-psemibold">{getDisplay(deer[field.key])}</Text>
                 </View>
             ))}
-
         </TouchableOpacity>
     );
 

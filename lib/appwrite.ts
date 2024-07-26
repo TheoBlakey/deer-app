@@ -29,15 +29,6 @@ client
 
 const account = new Account(client);
 
-// export const createUserHardCoded = () => {
-//     account.create(ID.unique(), 'trueemail@mail.com', 'password', 'Test Test Test')
-//         .then(function (response) {
-//             console.log(response);
-//         })
-//         .catch(function (error) {
-//             console.log(error);
-//         });
-// };
 
 // Register user
 export async function createUser(email: string, password: string, username: string) {
@@ -70,7 +61,6 @@ export async function createUser(email: string, password: string, username: stri
 // Sign In
 export async function signIn(email: string, password: string) {
     try {
-        console.log("ENDOINT =" + endpoint);
         const session = await account.createEmailPasswordSession(email, password);
         return session;
     } catch (error: any) {
@@ -105,7 +95,7 @@ export async function getCurrentUser() {
 
         return currentUser.documents[0];
     } catch (error) {
-        console.log(error);
+        // .log(error);
         return null;
     }
 }
@@ -132,7 +122,6 @@ export async function createAppWrite(form: Object, collection: Collection) {
         // Object.entries(form).forEach(([key, value]) => {
         //     documentData[key] = value;
         // });
-        console.log("HOWDY");
         const document = await databases.createDocument(
             databaseId,
             GetCollectionId(collection),

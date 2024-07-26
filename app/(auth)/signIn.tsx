@@ -9,6 +9,7 @@ import { getCurrentUser, signIn } from "@/lib/appwrite";
 import { useGlobalContext } from "../../context/GlobalProvider";
 import FormField, { Field } from "@/components/myComponents/FormField";
 import CustomButton from "@/components/myComponents/CustomButton";
+import CustomScreenWrapper from "@/components/myComponents/CustomScreenWrapper";
 
 const SignIn = () => {
     const { setUser, setIsLogged } = useGlobalContext();
@@ -42,76 +43,71 @@ const SignIn = () => {
     };
 
     return (
-        <SafeAreaView className="bg-primary h-full">
-            <ScrollView>
-                <View
-                    className="w-full flex justify-center h-full px-4 my-6"
-                    style={{
-                        minHeight: Dimensions.get("window").height - 100,
-                    }}
+        <CustomScreenWrapper>
+
+            <View className="flex-1 justify-center items-center">
+                <Image
+                    source={images.logo}
+                    resizeMode="contain"
+                    className="w-40 h-40 mt-5"
+                />
+            </View>
+
+
+            <Text className="text-2xl font-semibold text-white font-psemibold">
+                Log in to The Deer App
+            </Text>
+
+            <FormField
+                FieldInfo={{
+                    Field: Field.Text,
+                    PropName: "email"
+                }}
+                Form={form}
+                SetFormAbove={setForm}
+            />
+
+            <FormField
+                FieldInfo={{
+                    Field: Field.Text,
+                    PropName: "password"
+                }}
+                Form={form}
+                SetFormAbove={setForm}
+            />
+
+            <CustomButton
+                title="Sign In"
+                handlePress={submit}
+                containerStyles="mt-7"
+                isLoading={isSubmitting}
+            />
+
+            <View className="flex justify-center pt-5 flex-row gap-2">
+                <Text className="text-lg text-gray-100 font-pregular">
+                    Don't have an account?
+                </Text>
+                <Link
+                    href="/signUp"
+                    className="text-lg font-psemibold text-secondary"
                 >
-                    <Image
-                        source={images.logo}
-                        resizeMode="contain"
-                        className="w-[115px] h-[34px]"
-                    />
+                    Signup
+                </Link>
+            </View>
 
-                    <Text className="text-2xl font-semibold text-white mt-10 font-psemibold">
-                        Log in to The Deer App
-                    </Text>
+            <View className="flex justify-center pt-5 flex-row gap-2">
+                <Text className="text-lg text-gray-100 font-pregular">
+                    Need to save a deer offline?
+                </Text>
+                <Link
+                    href="/signUp"
+                    className="text-lg font-psemibold text-secondary"
+                >
+                    Use local storage
+                </Link>
+            </View>
 
-                    <FormField
-                        FieldInfo={{
-                            Field: Field.Text,
-                            PropName: "email"
-                        }}
-                        Form={form}
-                        SetFormAbove={setForm}
-                    />
-
-                    <FormField
-                        FieldInfo={{
-                            Field: Field.Text,
-                            PropName: "password"
-                        }}
-                        Form={form}
-                        SetFormAbove={setForm}
-                    />
-
-                    <CustomButton
-                        title="Sign In"
-                        handlePress={submit}
-                        containerStyles="mt-7"
-                        isLoading={isSubmitting}
-                    />
-
-                    <View className="flex justify-center pt-5 flex-row gap-2">
-                        <Text className="text-lg text-gray-100 font-pregular">
-                            Don't have an account?
-                        </Text>
-                        <Link
-                            href="/signUp"
-                            className="text-lg font-psemibold text-secondary"
-                        >
-                            Signup
-                        </Link>
-                    </View>
-
-                    <View className="flex justify-center pt-5 flex-row gap-2">
-                        <Text className="text-lg text-gray-100 font-pregular">
-                            Need to save a deer offline?
-                        </Text>
-                        <Link
-                            href="/signUp"
-                            className="text-lg font-psemibold text-secondary"
-                        >
-                            Use local storage
-                        </Link>
-                    </View>
-
-                </View>
-            </ScrollView>
-        </SafeAreaView>
+        </CustomScreenWrapper>
     );
 };
 

@@ -38,7 +38,7 @@ export function validateDeer(deerToValidate: Deer): string[] {
     });
 
     // if (validationIssues.length > 0) {
-    //     console.log("Please fill in the following fields: " + validationIssues.join(", "));
+    //     ("Please fill in the following fields: " + validationIssues.join(", "));
     // }
 
     return validationIssues;

@@ -5,6 +5,8 @@ import CustomButton from "@/components/myComponents/CustomButton";
 import { signOut } from "@/lib/appwrite";
 import { useGlobalContext } from "@/context/GlobalProvider";
 import CustomScreenWrapper from "@/components/myComponents/CustomScreenWrapper";
+import { images } from "@/constants";
+import { useEffect } from "react";
 
 
 export default function Home() {
@@ -21,6 +23,14 @@ export default function Home() {
     return (
         <CustomScreenWrapper>
 
+            <View className="flex-1 justify-center items-center">
+                <Image
+                    source={images.logo}
+                    resizeMode="contain"
+                    className="w-40 h-40 mt-5"
+                />
+            </View>
+
             <View className="items-center">
                 <Text className="text-2xl text-white font-psemibold">
                     Welcome to the app
@@ -35,6 +45,8 @@ export default function Home() {
             <CustomButton title="Profile & Settings" handlePress={() => router.push("/profile")} containerStyles="w-full mt-7" isLoading={false} />
 
             <CustomButton title="LOG OUT" handlePress={() => logout()} containerStyles="w-full mt-7 bg-gray" isLoading={false} />
+
+
 
         </CustomScreenWrapper>
 

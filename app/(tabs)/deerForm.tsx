@@ -16,7 +16,7 @@ import CustomScreenWrapper from "@/components/myComponents/CustomScreenWrapper";
 
 export default function DeerForm() {
 
-    const { user } = useGlobalContext();
+    const { user, globalDeerId, setGlobalDeerId } = useGlobalContext();
     const [isSubmitting, setSubmitting] = useState(false);
     const [isDeleting, setDeleting] = useState(false);
 
@@ -24,35 +24,40 @@ export default function DeerForm() {
     // const { paramDeerId } = useLocalSearchParams();
 
     const [isUpdate, setIsUpdate] = useState(false);
-    const [updateDeerId, setUpdateDeerId] = useState("");
+    const [localDeerId, setlocalDeerId] = useState("");
+    // const [globalDeerId, setUpdateDeerId] = useState("");
 
-    const fetchDeer = async () => {
-        if (isUpdate) {
-            const deerDocument = await getDocumentByIdAppWrite(updateDeerId, Collection.deer);
-            const deerObj = deerDocument as unknown as Deer;
-            setForm(deerObj);
-        }
+    const fetchDeer = async (deerid: string) => {
+        const deerDocument = await getDocumentByIdAppWrite(deerid, Collection.deer);
+        const deerObj = deerDocument as unknown as Deer;
+        setForm(deerObj);
+
     };
+
+    useEffect(() => {
+        fetchDeer(localDeerId);
+    }, [localDeerId]);
+
 
     useFocusEffect(
         useCallback(() => {
-            const paramDeerId = "useLocalSearchParams()";
-            const updateDeerId = typeof paramDeerId === 'string' ? paramDeerId : "";
-
-            setUpdateDeerId(updateDeerId);
-            setIsUpdate(updateDeerId != "");
-
-            if (isUpdate) {
-                fetchDeer();
+            // const paramDeerId = "useLocalSearchParams()";
+            // console.log("globalDeerId in form" + globalDeerId)
+            if (globalDeerId != "") {
+                setlocalDeerId(globalDeerId)
+                setIsUpdate(true);
             }
             else {
+                setIsUpdate(false);
                 setForm(createDefaultDeer())
                 setForm(prevForm => ({ ...prevForm, userId: user?.$id ?? null }));
             }
+            setGlobalDeerId("");
             return () => {
-                // console.log('Screen is unfocused');
+
             };
         }, []))
+
 
     useEffect(() => {
         switch (deerForm.sex) {
@@ -115,16 +120,16 @@ export default function DeerForm() {
 
         try {
             if (isUpdate) {
-                await updateAppWrite(updateDeerId, deerForm, Collection.deer)
+                await updateAppWrite(localDeerId, deerForm, Collection.deer)
             }
             else {
 
                 const userId = user?.$id ?? null
-                console.log("USER ID IS:" + userId)
+
                 // setForm(prevForm => ({ ...prevForm, userId: userId }));
-                console.log(deerForm);
+
                 const responce = await createAppWrite(deerForm, Collection.deer);
-                console.log(responce);
+
             }
 
             setModalExitVisible(true);
@@ -154,7 +159,7 @@ export default function DeerForm() {
     const deleteDeer = async () => {
         setDeleting(true);
         try {
-            deleteAppWrite(updateDeerId, Collection.deer)
+            deleteAppWrite(localDeerId, Collection.deer)
             setModalExitVisible(true);
 
         } catch (error: any) {
@@ -169,7 +174,7 @@ export default function DeerForm() {
         <CustomScreenWrapper>
 
             <Text className="text-2xl font-semibold text-white font-psemibold">
-                {isUpdate ? "Add a new deer" : "Update Deer"}
+                {!isUpdate ? "Add a new deer" : "Update Deer"}
             </Text>
 
             {deerFieldInfo.map((fieldInfo, index) => (
