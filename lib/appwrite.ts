@@ -115,13 +115,6 @@ export async function signOut() {
 // Create Document
 export async function createAppWrite(form: Object, collection: Collection) {
     try {
-
-        // const documentData: { [key: string]: any } = {};
-
-        // // Iterate over the form object and add keys and values to documentData
-        // Object.entries(form).forEach(([key, value]) => {
-        //     documentData[key] = value;
-        // });
         const document = await databases.createDocument(
             databaseId,
             GetCollectionId(collection),

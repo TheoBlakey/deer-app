@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { View, Text, ScrollView, Dimensions, Alert, Image, Modal } from "react-native";
+import { View, Text, ScrollView, Dimensions, Alert, Image, Modal, ActivityIndicator } from "react-native";
 
 import { images } from "../../constants";
 import CustomButton from '@/components/myComponents/CustomButton';
@@ -10,7 +10,7 @@ import { Collection, createAppWrite, deleteAppWrite, getCurrentUser, getDocument
 
 import { useGlobalContext } from "../../context/GlobalProvider";
 
-import { Species, Sex, Deer, createDefaultDeer, validateDeer } from '@/objects/deerObjects';
+import { Species, Sex, Deer, createDefaultDeer, validateDeer, mapToDeer } from '@/objects/deerObjects';
 import React from "react";
 import CustomScreenWrapper from "@/components/myComponents/CustomScreenWrapper";
 
@@ -21,39 +21,41 @@ export default function DeerForm() {
     const [isDeleting, setDeleting] = useState(false);
 
     const [deerForm, setForm] = useState<Deer>(createDefaultDeer());
-    // const { paramDeerId } = useLocalSearchParams();
 
-    const [isUpdate, setIsUpdate] = useState(false);
-    const [localDeerId, setlocalDeerId] = useState("");
-    // const [globalDeerId, setUpdateDeerId] = useState("");
+    const isUpdate = globalDeerId != "";
+    const [deerFetchLoading, setDeerFetchLoading] = useState(false);
 
     const fetchDeer = async (deerid: string) => {
+
+        setDeerFetchLoading(true);
+
         const deerDocument = await getDocumentByIdAppWrite(deerid, Collection.deer);
-        const deerObj = deerDocument as unknown as Deer;
+        console.log(deerDocument);
+        const deerObj = mapToDeer(deerDocument);
+
         setForm(deerObj);
 
+        setDeerFetchLoading(false);
     };
 
-    useEffect(() => {
-        fetchDeer(localDeerId);
-    }, [localDeerId]);
+    useFocusEffect(
+        useCallback(() => {
+
+            if (globalDeerId != "") {
+                fetchDeer(globalDeerId);
+            }
+            else {
+                setForm(createDefaultDeer())
+                setForm(prevForm => ({ ...prevForm, userId: user?.$id ?? null }));
+            }
+
+        }, [globalDeerId]))
 
 
     useFocusEffect(
         useCallback(() => {
-            // const paramDeerId = "useLocalSearchParams()";
-            // console.log("globalDeerId in form" + globalDeerId)
-            if (globalDeerId != "") {
-                setlocalDeerId(globalDeerId)
-                setIsUpdate(true);
-            }
-            else {
-                setIsUpdate(false);
-                setForm(createDefaultDeer())
-                setForm(prevForm => ({ ...prevForm, userId: user?.$id ?? null }));
-            }
-            setGlobalDeerId("");
             return () => {
+                setGlobalDeerId("");
 
             };
         }, []))
@@ -82,6 +84,8 @@ export default function DeerForm() {
     let deerFieldInfo: FieldInfo[] = [
         // { PropName: "dateTime", Field: Field.DateTime },
         // { PropName: "placeId", Field: Field.Drop },
+        { PropName: "dateTime", Field: Field.Date, differentTitle: "Date" },
+        { PropName: "dateTime", Field: Field.Time, differentTitle: "Time" },
         { PropName: "species", Field: Field.Drop, dropData: dropData(Object.values(Species)) },
         { PropName: "weight", Field: Field.Dec },
         { PropName: "age", Field: Field.Int },
@@ -92,19 +96,6 @@ export default function DeerForm() {
     ];
 
 
-
-
-    // useEffect(() => {
-    //     const fetchDeer = async () => {
-    //         if (isUpdate) {
-    //             const deerDocument = await getDocumentByIdAppWrite(updateDeerId, Collection.deer);
-    //             const deerObj = deerDocument as unknown as Deer;
-    //             setForm(deerObj);
-    //         }
-    //     };
-
-    //     fetchDeer();
-    // }, [updateDeerId]);
 
 
 
@@ -120,16 +111,12 @@ export default function DeerForm() {
 
         try {
             if (isUpdate) {
-                await updateAppWrite(localDeerId, deerForm, Collection.deer)
+                console.log("ID:" + globalDeerId);
+                console.log("Deer:" + JSON.stringify(deerForm));
+                await updateAppWrite(globalDeerId, deerForm, Collection.deer)
             }
             else {
-
-                const userId = user?.$id ?? null
-
-                // setForm(prevForm => ({ ...prevForm, userId: userId }));
-
-                const responce = await createAppWrite(deerForm, Collection.deer);
-
+                await createAppWrite(deerForm, Collection.deer);
             }
 
             setModalExitVisible(true);
@@ -159,7 +146,7 @@ export default function DeerForm() {
     const deleteDeer = async () => {
         setDeleting(true);
         try {
-            deleteAppWrite(localDeerId, Collection.deer)
+            await deleteAppWrite(globalDeerId, Collection.deer)
             setModalExitVisible(true);
 
         } catch (error: any) {
@@ -169,12 +156,10 @@ export default function DeerForm() {
 
     };
 
-
-    return (
-        <CustomScreenWrapper>
-
+    const deerFormComponent = (
+        <>
             <Text className="text-2xl font-semibold text-white font-psemibold">
-                {!isUpdate ? "Add a new deer" : "Update Deer"}
+                {!isUpdate ? "Add a new deer" : "Update Deer- Id:" + globalDeerId}
             </Text>
 
             {deerFieldInfo.map((fieldInfo, index) => (
@@ -188,20 +173,19 @@ export default function DeerForm() {
 
             <CustomButton
                 title={isUpdate ? "Update Deer" : "Submit Deer"}
-                handlePress={(submit)}
-                containerStyles="mt-7 mb-7"
+                handlePress={submit}
+                containerStyles={`mt-7 ${!isUpdate && "mb-7"}`}
                 isLoading={isSubmitting}
             />
 
             {isUpdate && (
                 <CustomButton
-                    title={"Delete Deer"}
+                    title="Delete Deer"
                     handlePress={() => setModalDeleteVisible(true)}
-                    containerStyles="mt-7"
+                    containerStyles="mt-7 mb-7 bg-myRed"
                     isLoading={isDeleting}
                 />
             )}
-
 
             <Modal
                 animationType="slide"
@@ -209,22 +193,25 @@ export default function DeerForm() {
                 visible={modalDeleteVisible}
                 onRequestClose={() => {
                     setModalDeleteVisible(false);
-                }}>
-
-                <View style={{ backgroundColor: 'white', padding: 20 }}>
-                    <Text className="text-xl font-semibold">Are you sure you want to delete this deer?</Text>
-                    <CustomButton
-                        title="Yes"
-                        handlePress={modalDeleteYes}
-                        containerStyles="mt-7"
-                        isLoading={isDeleting}
-                    />
-                    <CustomButton
-                        title="No"
-                        handlePress={() => setModalDeleteVisible(false)}
-                        containerStyles="mt-7"
-                        isLoading={isDeleting}
-                    />
+                }}
+            >
+                <View className="flex-1 justify-center items-center mt-6">
+                    <View className="m-5 bg-white rounded-2xl p-9 items-center shadow-lg">
+                        <Text className="text-xl font-semibold">
+                            Are you sure you want to delete this deer?
+                        </Text>
+                        <CustomButton
+                            title="Yes"
+                            handlePress={modalDeleteYes}
+                            containerStyles="mt-7  w-40"
+                            isLoading={isDeleting}
+                        />
+                        <CustomButton
+                            title="No"
+                            handlePress={() => setModalDeleteVisible(false)}
+                            containerStyles="mt-7  w-40"
+                        />
+                    </View>
                 </View>
             </Modal>
 
@@ -239,7 +226,9 @@ export default function DeerForm() {
             >
                 <View className="flex-1 justify-center items-center mt-6">
                     <View className="m-5 bg-white rounded-2xl p-9 items-center shadow-lg">
-                        <Text className="text-xl font-semibold">Successful Operation, please click here to go home</Text>
+                        <Text className="text-xl font-semibold">
+                            Successful Operation, please click here to go home
+                        </Text>
                         <CustomButton
                             title="Go to home"
                             handlePress={() => {
@@ -251,6 +240,24 @@ export default function DeerForm() {
                     </View>
                 </View>
             </Modal>
+        </>
+    );
+
+    return (
+        <CustomScreenWrapper>
+
+            <>
+                {deerFetchLoading ? (
+                    <View className="flex-1 justify-center items-center mt-60">
+                        <ActivityIndicator size="large" color="#ffffff" />
+                        <Text className="text-white mt-4 text-xl font-bold">Loading...</Text>
+                    </View>
+
+
+                ) : (
+                    deerFormComponent
+                )}
+            </>
 
         </CustomScreenWrapper>
     );

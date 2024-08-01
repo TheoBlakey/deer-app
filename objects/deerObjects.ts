@@ -1,3 +1,5 @@
+import { Models } from "react-native-appwrite";
+
 export enum Species {
     Red = "Red",
     Sika = "Sika",
@@ -12,7 +14,7 @@ export enum Sex {
 }
 
 export interface Deer {
-    userId: string | null
+    userId?: string | null
     dateTime: Date;
     // placeId: string | null;
     species: Species | null;
@@ -58,3 +60,48 @@ export function createDefaultDeer(): Deer {
         comments: ""
     };
 }
+
+
+export function mapToDeerList(documents: Models.Document[]): Deer[] {
+    return documents.map(mapToDeer);
+}
+
+export function mapToDeer(document: Models.Document): Deer {
+
+    const newDeer: Deer = {
+        // userId: document.userId ? document.userId.$id : null,
+        dateTime: document.dateTime ? new Date(document.dateTime) : new Date(),
+        species: document.species as Species | null,
+        weight: document.weight !== undefined ? document.weight : null,
+        age: document.age !== undefined ? document.age : null,
+        sex: document.sex as Sex | null,
+        embryo: document.embryo !== undefined ? document.embryo : null,
+        milk: document.milk !== undefined ? document.milk : null,
+        comments: document.comments || '',
+    };
+
+    return newDeer;
+}
+
+// export function mapToDeer(document: Models.Document): Deer {
+
+//     const propertiesToKeep = ["dateTime", "species", "weight", "age", "sex", "embryo", "milk", "comments"];
+//     const reducedDoc = retainProperties(document, propertiesToKeep);
+
+//     return reducedDoc as unknown as Deer;
+// }
+
+// const retainProperties = (obj: Record<string, any>, keysToKeep: string[]): Record<string, any> => {
+//     const newObj: Record<string, any> = {};
+
+//     for (const key of keysToKeep) {
+//         if (key in obj) {
+//             newObj[key] = obj[key];
+//         }
+//     }
+
+//     return newObj;
+// }
+
+
+

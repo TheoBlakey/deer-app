@@ -13,12 +13,14 @@ import { useGlobalContext } from "../../context/GlobalProvider";
 import React from "react";
 import { Models } from "react-native-appwrite";
 import CustomScreenWrapper from "@/components/myComponents/CustomScreenWrapper";
+import { exportDeerCSV, exportDeerPDF } from "@/lib/fileExporter";
+import { Deer, mapToDeerList } from "@/objects/deerObjects";
 
 export default function DeerList() {
 
     const [deerDocumentList, setDeerDocumentList] = useState<Models.Document[]>([]);
     const [loadingDeer, setLoadingDeer,] = useState<boolean>(false);
-    const { user, setGlobalDeerId, globalDeerId } = useGlobalContext();
+    const { user, setGlobalDeerId } = useGlobalContext();
 
     const fetchDeerList = async () => {
         setLoadingDeer(true);
@@ -37,32 +39,6 @@ export default function DeerList() {
             };
         }, [])
     );
-
-    useFocusEffect(
-        useCallback(() => {
-            // console.log("id now" + globalDeerId);
-            if (globalDeerId != "") {
-                router.push({
-                    pathname: '/deerForm',
-                    // params: { paramDeerId: globalDeerId }
-                });
-
-            }
-            return () => {
-                // Cleanup if needed when screen is unfocused
-            };
-        }, [globalDeerId])
-    );
-
-
-    // if (loadingDeer) {
-    //     return (
-    //         <SafeAreaView className="bg-primary h-full flex justify-center items-center">
-    //             <ActivityIndicator size="large" color="#ffffff" />
-    //             <Text className="text-white mt-4">Loading...</Text>
-    //         </SafeAreaView>
-    //     );
-    // }
 
     const tableFields = [
         // { key: 'userId', label: 'User ID' },
@@ -90,15 +66,16 @@ export default function DeerList() {
     const renderDeerRow = (deer: any) => (
         <TouchableOpacity
             onPress={() => {
-                setGlobalDeerId(deer.$id)
+                setGlobalDeerId(deer.$id);
+                router.push({ pathname: '/deerForm' });
             }}
             activeOpacity={0.2}
-            className="flex-row border-b border-gray-300 py-2.5"
+            className="flex-row border-b border-gray-300 py-4"
             key={deer.$id}
         >
             {tableFields.map((field) => (
                 <View key={field.key} className="flex-1 items-center">
-                    <Text className="text-white text-l font-psemibold">{getDisplay(deer[field.key])}</Text>
+                    <Text className="text-white text-l font-bold">{getDisplay(deer[field.key])}</Text>
                 </View>
             ))}
         </TouchableOpacity>
@@ -162,6 +139,17 @@ export default function DeerList() {
                 ) : (
                     <>
                         {deerDocumentList.map((item: any) => renderDeerRow(item))}
+                        <CustomButton
+                            title="Export Table as Excel File"
+                            handlePress={() => exportDeerCSV(mapToDeerList(deerDocumentList))}
+                            containerStyles="mt-7 w-full"
+                        />
+
+                        <CustomButton
+                            title="Export Table as PDF"
+                            handlePress={() => exportDeerPDF(mapToDeerList(deerDocumentList))}
+                            containerStyles="mt-7 mb-7 w-full"
+                        />
                     </>
                 )}
             </View>

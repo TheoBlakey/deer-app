@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, Image, Switch } from "react-native";
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 // import DropDownPicker from 'react-native-dropdown-picker';
 import { Picker } from '@react-native-picker/picker';
@@ -30,7 +31,8 @@ export interface FieldInfo {
 
 export enum Field {
     Text = "Text",
-    DateTime = "DateTime",
+    Date = "Date",
+    Time = "Time",
     Dec = "Dec",
     Int = "Int",
     Drop = "Drop",
@@ -39,7 +41,8 @@ export enum Field {
 
 export default function FormField({ FieldInfo, Form, SetFormAbove }: FormFieldProps) {
 
-    const title = FieldInfo.differentTitle != null ? FieldInfo.differentTitle : capitalizeFirstLetter(FieldInfo.PropName);
+    var title = FieldInfo.differentTitle != null ? FieldInfo.differentTitle : capitalizeFirstLetter(FieldInfo.PropName);
+    title = title + ":"
     const value = (Form as any)[FieldInfo.PropName];
 
     const handleChange = (e: any) => {
@@ -48,11 +51,73 @@ export default function FormField({ FieldInfo, Form, SetFormAbove }: FormFieldPr
         SetFormAbove(newForm); // Set the updated form object using setForm
     };
 
-    const nextToField = [Field.Tick, Field.Int, Field.Dec, File].includes(FieldInfo.Field)
+    const nextToField = [Field.Tick, Field.Int, Field.Dec, Field.Drop, Field.Date, Field.Time].includes(FieldInfo.Field)
     // const nextToField = false;
     let picker = null;
     switch (FieldInfo.Field) {
-        case Field.DateTime:
+
+        case Field.Date:
+        case Field.Time:
+            const isDate = FieldInfo.Field == Field.Date;
+
+            const onChange = (event: { type: string; nativeEvent: { timestamp: number; utcOffset?: number } }, selectedDate: Date | undefined) => {
+                const { type, nativeEvent } = event;
+
+                if (type === 'set') {
+                    const chosenDateTime = new Date(nativeEvent.timestamp) || value;
+
+                    if (isDate) {
+                        var combinedDate = new Date(chosenDateTime.getFullYear(), chosenDateTime.getMonth(), chosenDateTime.getDate(), value.getHours(), value.getMinutes());
+
+                    } else {
+                        combinedDate = new Date(value.getFullYear(), value.getMonth(), value.getDate(), chosenDateTime.getHours(), chosenDateTime.getMinutes());
+                    }
+
+                    handleChange(combinedDate);
+                }
+
+                setShow(false);
+            };
+
+            const [show, setShow] = useState(false);
+
+
+
+            if (isDate) {
+                var displayDateTime = (value as unknown as Date).toDateString();
+
+            } else {
+                const hours = value.getHours().toString().padStart(2, '0');
+                const minutes = value.getMinutes().toString().padStart(2, '0');
+                displayDateTime = hours + ":" + minutes;
+            }
+
+
+            picker = (
+                <>
+                    <TouchableOpacity
+                        onPress={() => setShow(true)}
+                        activeOpacity={0.7}
+                        className={`w-60 h-16 px-4 bg-black-100 rounded-2xl border-2 border-black-200 flex flex-row items-center ${show ? 'border-secondary' : ''}`}
+                    >
+                        <Text className="text-white text-lg flex flex-row">
+                            {displayDateTime}
+                        </Text>
+                    </TouchableOpacity>
+
+                    {show && (
+                        <DateTimePicker
+                            testID="dateTimePicker"
+                            value={value}
+                            mode={isDate ? "date" : "time"}
+                            is24Hour={true}
+                            display="default"
+                            onChange={onChange}
+                        />
+                    )}
+                </>
+            );
+
             break;
 
         case Field.Text:
@@ -85,6 +150,10 @@ export default function FormField({ FieldInfo, Form, SetFormAbove }: FormFieldPr
         case Field.Dec:
 
             const [decStringValue, setdecStringValue] = useState<string>(value != null ? value.toString() : '');
+
+            useEffect(() => {
+                setdecStringValue(value != null ? value.toString() : '');
+            }, [value]);
 
             const handleChangeDec = (e: string) => {
 
@@ -128,7 +197,7 @@ export default function FormField({ FieldInfo, Form, SetFormAbove }: FormFieldPr
 
             const [enabled, SetEnabled] = useState(true);
             picker = (
-                <View className="w-full h-16 px-4 bg-black-100 rounded-2xl border-2 border-black-200 focus:border-secondary flex flex-row items-center" >
+                <View className="w-60 h-16 px-4 bg-black-100 rounded-2xl border-2 border-black-200 focus:border-secondary flex flex-row items-center" >
                     <Picker
                         selectedValue={value}
                         style={{ flex: 1, color: 'white' }}
@@ -137,7 +206,7 @@ export default function FormField({ FieldInfo, Form, SetFormAbove }: FormFieldPr
                         onBlur={() => SetEnabled(true)}
                         onFocus={() => SetEnabled(false)}
                     >
-                        <Picker.Item label="Please pick an option:" value={null} enabled={enabled} color={"grey"} />
+                        <Picker.Item label="Please pick an option:" value={null} enabled={true} color={"grey"} />
                         {FieldInfo.dropData != null &&
                             FieldInfo.dropData.map((option, index) => (
                                 <Picker.Item key={index} label={option.label} value={option.value} />
