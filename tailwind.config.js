@@ -19,7 +19,7 @@ module.exports = {
           100: "#CDCDE0",
         },
         myRed: {
-          DEFAULT: "#dc2626",
+          DEFAULT: "#b91c1c",
         },
       },
       fontFamily: {

@@ -188,3 +188,18 @@ export async function getDocumentsByUserIdAppWrite(userId: string, collection: C
         throw new Error(error);
     }
 }
+
+
+export async function getDocumentsByQuery(queryList: string[], collection: Collection) {
+    try {
+        const documents = await databases.listDocuments(
+            databaseId,
+            GetCollectionId(collection),
+            queryList
+        );
+
+        return documents.documents;
+    } catch (error: any) {
+        throw new Error(error);
+    }
+}

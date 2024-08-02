@@ -158,9 +158,17 @@ export default function DeerForm() {
 
     const deerFormComponent = (
         <>
-            <Text className="text-2xl font-semibold text-white font-psemibold">
-                {!isUpdate ? "Add a new deer" : "Update Deer- Id:" + globalDeerId}
+            <Text className={`text-2xl font-semibold text-white font-psemibold`}>
+                {!isUpdate ? "Add A New Deer" : `Update Deer -`}
             </Text>
+
+            {isUpdate ? (
+                <Text className="text-2xl font-semibold font-psemibold text-secondary">
+                    {`Id: ${globalDeerId}`}
+                </Text>
+            ) : null}
+
+            <View className="flex-row border-b border-gray-300 pb-2.5" />
 
             {deerFieldInfo.map((fieldInfo, index) => (
                 <FormField

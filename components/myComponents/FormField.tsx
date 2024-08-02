@@ -131,10 +131,10 @@ export default function FormField({ FieldInfo, Form, SetFormAbove }: FormFieldPr
                         placeholder={FieldInfo.placeholder}
                         placeholderTextColor="#7B7B8B"
                         onChangeText={handleChange}
-                        secureTextEntry={title === 'Password' && !showPassword}
+                        secureTextEntry={FieldInfo.PropName === 'password' && !showPassword}
                     />
 
-                    {title === 'Password' && (
+                    {FieldInfo.PropName === 'Password:' && (
                         <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                             <Image
                                 source={!showPassword ? icons.eye : icons.eyeHide}
@@ -252,9 +252,11 @@ export default function FormField({ FieldInfo, Form, SetFormAbove }: FormFieldPr
 
         case Field.Tick:
 
+            const [focused, SetFocused] = useState(false);
             picker = (
 
-                <View className="w-16 h-16 px-4 bg-black-100 rounded-2xl border-2 border-black-200 focus:border-secondary flex flex-row items-center justify-center">
+
+                <View className={`w-16 h-16 px-4 bg-black-100 rounded-2xl border-2 border-black-200 flex flex-row items-center justify-center ${focused && "border-secondary"}`}>
                     {FieldInfo.disabled ? (
                         <Text
                             className="flex-1 font-psemibold text-base"
@@ -269,6 +271,9 @@ export default function FormField({ FieldInfo, Form, SetFormAbove }: FormFieldPr
                             value={value != null ? value : false}
                             onValueChange={handleChange}
                             color='#4630EB'
+                            onTouchStart={() => SetFocused(true)}
+                            onTouchCancel={() => SetFocused(false)}
+                            onTouchEnd={() => SetFocused(false)}
                         />
                     )}
                 </View>
