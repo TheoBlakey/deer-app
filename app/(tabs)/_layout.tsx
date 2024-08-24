@@ -17,7 +17,7 @@ export default function TabLayout() {
       <Tabs.Screen name="home" options={{ title: 'Home', tabBarIcon: ({ color, focused }) => <TabBarIcon name={focused ? 'home' : 'home-outline'} color={color} /> }} />
       <Tabs.Screen name="deerForm" options={{ title: 'New Record', tabBarIcon: ({ color, focused }) => <TabBarIcon name={focused ? 'duplicate' : 'duplicate-outline'} color={color} /> }} />
       <Tabs.Screen name="deerList" options={{ title: 'All Records', tabBarIcon: ({ color, focused }) => <TabBarIcon name={focused ? 'list' : 'list-outline'} color={color} /> }} />
-      <Tabs.Screen name="explore" options={{ title: 'Profile', tabBarIcon: ({ color, focused }) => <TabBarIcon name={focused ? 'code-slash' : 'code-slash-outline'} color={color} /> }} />
+      <Tabs.Screen name="profile" options={{ title: 'Profile', tabBarIcon: ({ color, focused }) => <TabBarIcon name={focused ? 'person' : 'person-outline'} color={color} /> }} />
     </Tabs>
   );
 }

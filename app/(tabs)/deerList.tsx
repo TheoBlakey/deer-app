@@ -5,7 +5,7 @@ import { View, Text, ScrollView, Dimensions, Alert, Image, FlatList, ActivityInd
 
 import { images } from "../../constants";
 import CustomButton from '@/components/myComponents/CustomButton';
-import FormField, { FieldInfo, Field, dropData } from "@/components/myComponents/FormField";
+import FormField, { FieldInfo, Field, dropData, dropDataPlaceDocument } from "@/components/myComponents/FormField";
 import { Collection, createAppWrite, deleteAppWrite, getCurrentUser, getDocumentByIdAppWrite, getDocumentsByQuery, getDocumentsByUserIdAppWrite, signIn, updateAppWrite } from "@/lib/appwrite";
 
 import { useGlobalContext } from "../../context/GlobalProvider";
@@ -14,7 +14,7 @@ import React from "react";
 import { Models, Query } from "react-native-appwrite";
 import CustomScreenWrapper from "@/components/myComponents/CustomScreenWrapper";
 import { exportDeerCSV, exportDeerPDF } from "@/lib/fileExporter";
-import { Deer, mapToDeerList, Sex, Species } from "@/objects/deerObjects";
+import { Deer, deerDisplayName, deerPrint, mapToDeerList, Place, Sex, Species } from "@/objects/deerObjects";
 
 export default function DeerList() {
 
@@ -22,20 +22,23 @@ export default function DeerList() {
     const [loadingDeer, setLoadingDeer,] = useState<boolean>(false);
     const { user, setGlobalDeerId } = useGlobalContext();
 
-    const fetchDeerList = async () => {
+
+    const fetchData = async () => {
         setLoadingDeer(true);
 
+        const placeDocuments = await getDocumentsByUserIdAppWrite(user?.$id ?? "", Collection.place);
+        setPlaceDocumentList(placeDocuments);
         const deerDocuments = await getDocumentsByUserIdAppWrite(user?.$id ?? "", Collection.deer);
         setDeerDocumentList(deerDocuments);
 
         setLoadingDeer(false);
     };
 
-
+    const [placeDocumentList, setPlaceDocumentList] = useState<Models.Document[]>([]);
 
     useFocusEffect(
         useCallback(() => {
-            fetchDeerList();
+            fetchData();
             return () => {
                 setDeerSearchForm(defaultSearch);
                 setViewFilters(false);
@@ -43,23 +46,14 @@ export default function DeerList() {
         }, [])
     );
 
-    const tableFields = [
-        // { key: 'userId', label: 'User ID' },
-        { key: 'dateTime', label: 'Date' },
-        { key: 'species', label: 'Species' },
-        { key: 'weight', label: 'Weight' },
-        { key: 'age', label: 'Age' },
-        { key: 'sex', label: 'Sex' },
-        { key: 'embryo', label: 'Embryo' },
-        { key: 'milk', label: 'Milk' },
-        // { key: 'comments', label: 'Comments' }
-    ];
+
+    const tableColumns = ["dateTime", "species", "weight", "age", "sex"];
 
     const tableHeadings = () => (
         <View className="flex-row border-b border-gray-300 pb-2.5">
-            {tableFields.map((field) => (
-                <View key={field.key} className="flex-1 items-center">
-                    <Text className="text-white text-l font-psemibold">{field.label}</Text>
+            {tableColumns.map((column) => (
+                <View key={column + "h"} className="flex-1 items-center">
+                    <Text className="text-white text-l font-psemibold">{deerDisplayName(column)}</Text>
                 </View>
             ))}
         </View>
@@ -76,55 +70,13 @@ export default function DeerList() {
             className="flex-row border-b border-gray-300 py-4"
             key={deer.$id}
         >
-            {tableFields.map((field) => (
-                <View key={field.key} className="flex-1 items-center">
-                    <Text className="text-white text-l font-bold">{getDisplay(deer[field.key])}</Text>
+            {tableColumns.map((column) => (
+                <View key={column + "r"} className="flex-1 items-center">
+                    <Text className="text-white text-l font-bold">{deerPrint(column, deer[column])}</Text>
                 </View>
             ))}
         </TouchableOpacity>
     );
-
-    function isDateString(input: string): boolean {
-        const regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}\+\d{2}:\d{2}$/;
-        return regex.test(input);
-    }
-
-    function getDisplay(deerField: any): string {
-
-        if (deerField == null) {
-            return "Empty";
-        }
-
-        if (typeof deerField === 'string') {
-
-            if (!isDateString(deerField)) {
-                return deerField;
-            }
-
-            deerField = new Date(deerField);
-
-        }
-
-        if (deerField instanceof Date) {
-            const day = deerField.getDate().toString().padStart(2, '0');
-            const month = (deerField.getMonth() + 1).toString().padStart(2, '0');
-            const year = deerField.getFullYear().toString().slice(-2); // Get last 2 digits of the year
-            return `${day}/${month}/${year}`;
-        }
-
-
-        if (typeof deerField === 'boolean') {
-            return deerField ? "yes" : "no";
-        }
-
-        if (typeof deerField === 'number') {
-            return deerField.toString();
-        }
-
-        return "Empty";
-    }
-
-
 
 
 
@@ -141,17 +93,25 @@ export default function DeerList() {
             ) : (
                 <>
                     {deerDocumentList.map((item: any) => renderDeerRow(item))}
-                    <CustomButton
-                        title="Export Table as Excel File"
-                        handlePress={() => exportDeerCSV(mapToDeerList(deerDocumentList))}
-                        containerStyles="mt-7 w-full"
-                    />
 
-                    <CustomButton
-                        title="Export Table as PDF"
-                        handlePress={() => exportDeerPDF(mapToDeerList(deerDocumentList))}
-                        containerStyles="mt-7 mb-7 w-full"
-                    />
+                    {deerDocumentList.length === 0 ? (
+                        <Text className="text-xl font-semibold text-white font-psemibold mt-5 text-center">
+                            No records found. Please add a new record or change search criteria.
+                        </Text>
+                    ) : (
+                        <>
+                            <CustomButton
+                                title="Export Table as Excel File"
+                                handlePress={() => exportDeerCSV(mapToDeerList(deerDocumentList))}
+                                containerStyles="mt-7 w-full"
+                            />
+                            <CustomButton
+                                title="Export Table as PDF"
+                                handlePress={() => exportDeerPDF(mapToDeerList(deerDocumentList))}
+                                containerStyles="mt-7 mb-7 w-full"
+                            />
+                        </>
+                    )}
                 </>
             )}
         </View>
@@ -161,31 +121,28 @@ export default function DeerList() {
         dateTimeStart: Date;
         dateTimeEnd: Date;
         species: Species | null;
-        // weight: number | null;
-        // age: number | null;
         sex: Sex | null;
-        embryo: boolean | null;
-        milk: boolean | null;
+        place: Place | null;
     }
     const defaultSearch: DeerSearch = {
         dateTimeStart: new Date('2020-01-01'),
         dateTimeEnd: new Date(),
         species: null,
         sex: null,
-        embryo: null,
-        milk: null
+        place: null
     };
 
     const [deerSearchForm, setDeerSearchForm] = useState<DeerSearch>(defaultSearch);
     const [viewFilters, setViewFilters] = useState(false);
 
     let searchFieldInfo: FieldInfo[] = [
-        { PropName: "dateTimeStart", Field: Field.Date, differentTitle: "From Date" },
+        { PropName: "dateTimeStart", Field: Field.Date, differentTitle: "From Date", otherStyles: "mt-5" },
         { PropName: "dateTimeEnd", Field: Field.Date, differentTitle: "To Date" },
         { PropName: "species", Field: Field.Drop, dropData: dropData(Object.values(Species)) },
         { PropName: "sex", Field: Field.Drop, dropData: dropData(Object.values(Sex)) },
-        { PropName: "embryo", Field: Field.Drop, dropData: [{ label: "Yes", value: true }, { label: "No", value: false }] },
-        { PropName: "milk", Field: Field.Drop, dropData: [{ label: "Yes", value: true }, { label: "No", value: false }] }
+        { PropName: "place", Field: Field.Drop, dropData: dropDataPlaceDocument(placeDocumentList) }
+        // { PropName: "embryo", Field: Field.Drop, dropData: [{ label: "Yes", value: true }, { label: "No", value: false }] },
+        // { PropName: "milk", Field: Field.Drop, dropData: [{ label: "Yes", value: true }, { label: "No", value: false }] }
     ];
 
     const fetchFilteredDeerList = async () => {
@@ -195,20 +152,15 @@ export default function DeerList() {
         queryList.push(Query.equal("userId", user?.$id ?? ""));
         queryList.push(Query.between('dateTime', (deerSearchForm.dateTimeStart).toDateString(), (deerSearchForm.dateTimeEnd).toDateString()));
 
-
         if (deerSearchForm.species != null) {
             queryList.push(Query.equal("species", deerSearchForm.species))
         }
         if (deerSearchForm.sex != null) {
             queryList.push(Query.equal("sex", deerSearchForm.sex))
         }
-        if (deerSearchForm.embryo != null) {
-            queryList.push(Query.equal("embryo", deerSearchForm.embryo))
+        if (deerSearchForm.place != null) {
+            queryList.push(Query.equal("place", deerSearchForm.place.$id))
         }
-        if (deerSearchForm.milk != null) {
-            queryList.push(Query.equal("milk", deerSearchForm.milk))
-        }
-
 
         const deerDocuments = await getDocumentsByQuery(queryList, Collection.deer);
         setDeerDocumentList(deerDocuments);
@@ -244,8 +196,7 @@ export default function DeerList() {
                 handlePress={() => {
                     setViewFilters(false);
                     setDeerSearchForm(defaultSearch);
-                    fetchDeerList();
-                    console.log(user)
+                    fetchData();
                 }}
                 containerStyles="mt-7"
             />
@@ -264,14 +215,14 @@ export default function DeerList() {
                     Deer Records Table
                 </Text>
                 <CustomButton
-                    title="Filter Table"
+                    title={viewFilters ? "Close Filter" : "Filter Tabler"}
                     handlePress={() => {
                         if (viewFilters) {
                             setDeerSearchForm(defaultSearch);
                         }
                         setViewFilters(!viewFilters);
                     }}
-                    containerStyles="7 h-2 w-20"
+                    containerStyles="h-2 w-20"
                     textStyles="text-l"
                 />
             </View>

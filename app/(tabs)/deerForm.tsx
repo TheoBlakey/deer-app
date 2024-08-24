@@ -1,18 +1,21 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { View, Text, ScrollView, Dimensions, Alert, Image, Modal, ActivityIndicator } from "react-native";
 
 import { images } from "../../constants";
 import CustomButton from '@/components/myComponents/CustomButton';
-import FormField, { FieldInfo, Field, dropData } from "@/components/myComponents/FormField";
-import { Collection, createAppWrite, deleteAppWrite, getCurrentUser, getDocumentByIdAppWrite, signIn, updateAppWrite } from "@/lib/appwrite";
+import FormField, { FieldInfo, Field, dropData, dropDataPlaceDocument, RuleNotNull, FormFieldRef, Rule0to15, Rule0to200 } from "@/components/myComponents/FormField";
+import { Collection, createAppWrite, deleteAppWrite, getCurrentUser, getDocumentByIdAppWrite, getDocumentsByUserIdAppWrite, signIn, updateAppWrite } from "@/lib/appwrite";
 
 import { useGlobalContext } from "../../context/GlobalProvider";
 
-import { Species, Sex, Deer, createDefaultDeer, validateDeer, mapToDeer } from '@/objects/deerObjects';
+import { Species, Sex, Deer, createDefaultDeer, mapToDeer, deerDisplayName, Destination, Place } from '@/objects/deerObjects';
 import React from "react";
 import CustomScreenWrapper from "@/components/myComponents/CustomScreenWrapper";
+import { Models } from "react-native-appwrite";
+import { allFieldsPassValidation, resetAllValidation } from "@/lib/validationFunctions";
+import CustomModal from "@/components/myComponents/CustomModal";
 
 export default function DeerForm() {
 
@@ -25,12 +28,19 @@ export default function DeerForm() {
     const isUpdate = globalDeerId != "";
     const [deerFetchLoading, setDeerFetchLoading] = useState(false);
 
+
+    const [placeDocumentList, setPlaceDocumentList] = useState<Models.Document[]>([]);
+    const fetchPlaceList = async () => {
+        const placeDocuments = await getDocumentsByUserIdAppWrite(user?.$id ?? "", Collection.place);
+        setPlaceDocumentList(placeDocuments);
+    };
+
     const fetchDeer = async (deerid: string) => {
 
         setDeerFetchLoading(true);
 
         const deerDocument = await getDocumentByIdAppWrite(deerid, Collection.deer);
-        console.log(deerDocument);
+
         const deerObj = mapToDeer(deerDocument);
 
         setForm(deerObj);
@@ -54,9 +64,10 @@ export default function DeerForm() {
 
     useFocusEffect(
         useCallback(() => {
+            fetchPlaceList();
             return () => {
                 setGlobalDeerId("");
-
+                resetAllValidation(refList);
             };
         }, []))
 
@@ -81,45 +92,48 @@ export default function DeerForm() {
     }, [deerForm.sex]);
 
     var disableFemaleTraits: boolean = deerForm.sex == Sex.Male;
+
     let deerFieldInfo: FieldInfo[] = [
-        // { PropName: "dateTime", Field: Field.DateTime },
-        // { PropName: "placeId", Field: Field.Drop },
+
         { PropName: "dateTime", Field: Field.Date, differentTitle: "Date" },
         { PropName: "dateTime", Field: Field.Time, differentTitle: "Time" },
-        { PropName: "species", Field: Field.Drop, dropData: dropData(Object.values(Species)) },
-        { PropName: "weight", Field: Field.Dec },
-        { PropName: "age", Field: Field.Int },
-        { PropName: "sex", Field: Field.Drop, dropData: dropData(Object.values(Sex)) },
+        { PropName: "species", Field: Field.Drop, dropData: dropData(Object.values(Species)), ValidationRules: [RuleNotNull] },
+        { PropName: "weight", Field: Field.Dec, ValidationRules: [RuleNotNull, Rule0to200] },
+        { PropName: "age", Field: Field.Int, ValidationRules: [RuleNotNull, Rule0to15] },
+        { PropName: "sex", Field: Field.Drop, dropData: dropData(Object.values(Sex)), ValidationRules: [RuleNotNull] },
         { PropName: "embryo", Field: Field.Tick, disabled: disableFemaleTraits },
         { PropName: "milk", Field: Field.Tick, disabled: disableFemaleTraits },
+        { PropName: "destination", Field: Field.Drop, dropData: dropData(Object.values(Destination)) },
+        { PropName: "place", Field: Field.Drop, dropData: dropDataPlaceDocument(placeDocumentList) },
         { PropName: "comments", Field: Field.Text },
     ];
 
 
-
-
-
     const submit = async () => {
 
-        const validationIssues = validateDeer(deerForm);
-        if (validationIssues.length > 0) {
-            Alert.alert("Error", "Please fill in all fields");
+
+        if (!allFieldsPassValidation(refList)) {
+            Alert.alert("Error", "Please fill in all required fields");
             return;
         }
+
 
         setSubmitting(true);
 
         try {
             if (isUpdate) {
-                console.log("ID:" + globalDeerId);
-                console.log("Deer:" + JSON.stringify(deerForm));
+
                 await updateAppWrite(globalDeerId, deerForm, Collection.deer)
             }
             else {
-                await createAppWrite(deerForm, Collection.deer);
+                const deerCopy = { ...deerForm };
+                if (deerForm.place != null) {
+                    deerCopy.place = deerForm.place.$id as unknown as Place;
+                }
+                await createAppWrite(deerCopy, Collection.deer);
             }
 
-            setModalExitVisible(true);
+            customModalRef.current.openModal();
 
         } catch (error: any) {
             Alert.alert("Error", error.message);
@@ -156,6 +170,8 @@ export default function DeerForm() {
 
     };
 
+    const refList: (any)[] = [];
+
     const deerFormComponent = (
         <>
             <Text className={`text-2xl font-semibold text-white font-psemibold`}>
@@ -168,21 +184,28 @@ export default function DeerForm() {
                 </Text>
             ) : null}
 
-            <View className="flex-row border-b border-gray-300 pb-2.5" />
+            <View className="flex-row border-b border-gray-300 pb-2.5 mb-5" />
 
-            {deerFieldInfo.map((fieldInfo, index) => (
-                <FormField
-                    key={index}
-                    FieldInfo={fieldInfo}
-                    Form={deerForm}
-                    SetFormAbove={setForm}
-                />
-            ))}
+            {deerFieldInfo.map((fieldInfo, index) => {
+                if (fieldInfo.differentTitle == null) {
+                    fieldInfo.differentTitle = deerDisplayName(fieldInfo.PropName);
+                }
+                refList[index] = useRef();
+                return (
+                    <FormField
+                        key={index + fieldInfo.PropName}
+                        FieldInfo={fieldInfo}
+                        Form={deerForm}
+                        SetFormAbove={setForm}
+                        ref={refList[index]}
+                    />
+                );
+            })}
 
             <CustomButton
                 title={isUpdate ? "Update Deer" : "Submit Deer"}
                 handlePress={submit}
-                containerStyles={`mt-7 ${!isUpdate && "mb-7"}`}
+                containerStyles={`mt-5 ${!isUpdate && "mb-7"}`}
                 isLoading={isSubmitting}
             />
 
@@ -222,35 +245,10 @@ export default function DeerForm() {
                     </View>
                 </View>
             </Modal>
-
-            <Modal
-                animationType="slide"
-                transparent={true}
-                visible={modalExitVisible}
-                onRequestClose={() => {
-                    setModalExitVisible(false);
-                    router.replace("/home");
-                }}
-            >
-                <View className="flex-1 justify-center items-center mt-6">
-                    <View className="m-5 bg-white rounded-2xl p-9 items-center shadow-lg">
-                        <Text className="text-xl font-semibold">
-                            Successful Operation, please click here to go home
-                        </Text>
-                        <CustomButton
-                            title="Go to home"
-                            handlePress={() => {
-                                setModalExitVisible(false);
-                                router.replace("/home");
-                            }}
-                            containerStyles="mt-7 w-40"
-                        />
-                    </View>
-                </View>
-            </Modal>
         </>
     );
 
+    const customModalRef = useRef() as any
     return (
         <CustomScreenWrapper>
 
@@ -266,7 +264,7 @@ export default function DeerForm() {
                     deerFormComponent
                 )}
             </>
-
+            <CustomModal ref={customModalRef}></CustomModal>
         </CustomScreenWrapper>
     );
 };

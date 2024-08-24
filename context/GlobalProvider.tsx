@@ -47,7 +47,7 @@ const GlobalProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
                 }
             })
             .catch((error) => {
-                // .log(error);
+                console.error(error);
             })
             .finally(() => {
                 setLoading(false);

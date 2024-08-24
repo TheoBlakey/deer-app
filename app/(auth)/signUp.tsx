@@ -47,7 +47,7 @@ const SignUp = () => {
                         className="w-[115px] h-[34px]"
                     /> */}
 
-            <Text className="text-2xl font-semibold text-white mt-14 font-psemibold">
+            <Text className="text-2xl font-semibold text-white mt-14 font-psemibold mb-5">
                 Sign Up to The Deer App
             </Text>
 

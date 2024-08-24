@@ -1,11 +1,12 @@
 import { Account, AppwriteException, Client, Databases, ID, Query } from 'react-native-appwrite';
 import Constants from 'expo-constants';
 
-const { endpoint = "", platform = "", projectId = "", storageId = "", databaseId = "", userCollectionId = "", deerCollectionId = "" } = Constants.expoConfig?.extra || {};
+const { endpoint = "", platform = "", projectId = "", storageId = "", databaseId = "", userCollectionId = "", deerCollectionId = "", placeCollectionId = "" } = Constants.expoConfig?.extra || {};
 
 export enum Collection {
     user = "user",
-    deer = "deer"
+    deer = "deer",
+    place = "place"
 }
 
 function GetCollectionId(collection: Collection): string {
@@ -14,6 +15,8 @@ function GetCollectionId(collection: Collection): string {
             return userCollectionId;
         case Collection.deer:
             return deerCollectionId;
+        case Collection.place:
+            return placeCollectionId;
     }
 }
 
@@ -85,17 +88,22 @@ export async function getCurrentUser() {
         const currentAccount = await getAccount();
         if (!currentAccount) throw Error;
 
-        const currentUser = await databases.listDocuments(
+        const searchResult = await databases.listDocuments(
             databaseId,
             GetCollectionId(Collection.user),
             [Query.equal("accountId", currentAccount.$id)]
         );
 
-        if (!currentUser) throw Error;
+        if (!searchResult) throw Error;
 
-        return currentUser.documents[0];
+        const currentUser = searchResult.documents[0]
+        // currentUser.accountId = currentAccount.$id;
+        // currentUser.email = currentAccount.email;
+
+        return currentUser;
+
     } catch (error) {
-        // .log(error);
+        console.error(error);
         return null;
     }
 }
@@ -130,7 +138,9 @@ export async function createAppWrite(form: Object, collection: Collection) {
 
 // Update Document
 export async function updateAppWrite(documentId: string, form: Object, collection: Collection) {
+
     try {
+
         const document = await databases.updateDocument(
             databaseId,
             GetCollectionId(collection),
@@ -140,6 +150,7 @@ export async function updateAppWrite(documentId: string, form: Object, collectio
 
         return document;
     } catch (error: any) {
+        console.error(error)
         throw new Error(error);
     }
 }
@@ -185,6 +196,7 @@ export async function getDocumentsByUserIdAppWrite(userId: string, collection: C
 
         return documents.documents;
     } catch (error: any) {
+        console.error(error);
         throw new Error(error);
     }
 }

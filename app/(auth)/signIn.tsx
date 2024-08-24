@@ -54,7 +54,7 @@ const SignIn = () => {
             </View>
 
 
-            <Text className="text-2xl font-semibold text-white font-psemibold">
+            <Text className="text-2xl font-semibold text-white font-psemibold mb-5">
                 Log in to The Deer App
             </Text>
 
@@ -95,7 +95,7 @@ const SignIn = () => {
                 </Link>
             </View>
 
-            <View className="flex justify-center pt-5 flex-row gap-2">
+            {/* <View className="flex justify-center pt-5 flex-row gap-2">
                 <Text className="text-lg text-gray-100 font-pregular">
                     Need to save a deer offline?
                 </Text>
@@ -105,7 +105,7 @@ const SignIn = () => {
                 >
                     Use local storage
                 </Link>
-            </View>
+            </View> */}
 
         </CustomScreenWrapper>
     );

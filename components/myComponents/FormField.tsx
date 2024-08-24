@@ -1,58 +1,156 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, Image, Switch } from "react-native";
+import React, { ForwardedRef, forwardRef, useEffect, useImperativeHandle, useState } from "react";
+import { View, Text, TextInput, TouchableOpacity, Image, Switch, Platform } from "react-native";
 import DateTimePicker from '@react-native-community/datetimepicker';
 
-// import DropDownPicker from 'react-native-dropdown-picker';
-import { Picker } from '@react-native-picker/picker';
+
+
 import Checkbox from 'expo-checkbox';
 
 import { icons } from "../../constants";
+import { Models } from "react-native-appwrite";
+import { SelectList } from 'react-native-dropdown-select-list';
+
 
 interface FormFieldProps {
     FieldInfo: FieldInfo;
     Form: Object;
     SetFormAbove: (form: any) => void;
+    ListIndex?: Number
 }
 
-export interface DropData {
-    label: string
-    value: any
+interface ValidationRule {
+    failMessage: string
+    passValidation: (value: any) => boolean
 }
+
 
 export interface FieldInfo {
     PropName: string;
     Field: Field;
     differentTitle?: string;
     disabled?: boolean;
-    dropData?: DropData[];
+    dropData?: { value: string; doc: any; }[];
     placeholder?: string;
     otherStyles?: string;
+    ValidationRules?: ValidationRule[];
+    smallTextBox?: boolean;
 }
 
-export enum Field {
-    Text = "Text",
-    Date = "Date",
-    Time = "Time",
-    Dec = "Dec",
-    Int = "Int",
-    Drop = "Drop",
-    Tick = "Tick"
+export interface FormFieldRef {
+    checkValidation: () => boolean;
 }
 
-export default function FormField({ FieldInfo, Form, SetFormAbove }: FormFieldProps) {
+export enum Field { Text = "Text", Date = "Date", Time = "Time", Dec = "Dec", Int = "Int", Drop = "Drop", Tick = "Tick" }
+
+export const RuleNotNull: ValidationRule = {
+    failMessage: "Field Cannot Be Empty",
+    passValidation: (value: any) => value !== null && value !== undefined && value !== ''
+};
+
+export const Rule0to15: ValidationRule = {
+    failMessage: "Field must be less than 15",
+    passValidation: (value: any) => {
+        if (value === null || value === undefined || value === '') {
+            return false;
+        }
+        const numericValue = Number(value);
+        return !isNaN(numericValue) && numericValue < 15;
+    }
+};
+
+export const Rule0to200: ValidationRule = {
+    failMessage: "Field must be more than zero and less than 200",
+    passValidation: (value: any) => {
+        if (value === null || value === undefined || value === '') {
+            return false;
+        }
+        const numericValue = Number(value);
+        return !isNaN(numericValue) && numericValue > 0 && numericValue < 200;
+    }
+};
+
+
+
+const FormField = forwardRef<any, FormFieldProps>(({ FieldInfo, Form, SetFormAbove, ListIndex }, ref) => {
+
+    if (ref != undefined) {
+        useImperativeHandle(ref, () => ({
+            // triggerFunction() {
+            //     alert('Function in Child Component triggered!');
+            // },
+            hasPassedValidation,
+            resetValidation
+        }));
+    }
+
+    const [validationFailMessages, setValidationFailMessages] = useState<string[]>([]);
+
+    function hasPassedValidation(input = value): boolean {
+        if (FieldInfo.ValidationRules == undefined) {
+            return true;
+        }
+
+        var passedValidation = true;
+        var newDisplayProblems: string[] = [];
+
+        FieldInfo.ValidationRules.forEach(Rule => {
+
+            if (!Rule.passValidation(input)) {
+                passedValidation = false;
+                newDisplayProblems.push(Rule.failMessage)
+            }
+        });
+
+        setValidationFailMessages(newDisplayProblems);
+        return passedValidation;
+    }
+
+    function resetValidation() {
+        setValidationFailMessages([]);
+    }
+
+
 
     var title = FieldInfo.differentTitle != null ? FieldInfo.differentTitle : capitalizeFirstLetter(FieldInfo.PropName);
     title = title + ":"
-    const value = (Form as any)[FieldInfo.PropName];
+
+    var formObject = {};
+    if (ListIndex != undefined && ListIndex != null) {
+        const formArray = Form as [];
+        formObject = formArray[ListIndex as number];
+    } else {
+        formObject = Form;
+    }
+    const value = (formObject as any)[FieldInfo.PropName];
+
+
+
 
     const handleChange = (e: any) => {
-        const newForm = { ...Form }; // Create a copy of form object
-        (newForm as any)[FieldInfo.PropName] = e; // Update the specific field
-        SetFormAbove(newForm); // Set the updated form object using setForm
+        hasPassedValidation(e);
+
+        if (ListIndex != undefined && ListIndex != null) {
+
+            const newList = [...Form as []];
+            const newListItem = newList[ListIndex as number];
+            (newListItem as any)[FieldInfo.PropName] = e;
+
+            newList[ListIndex as number] = newListItem;
+            SetFormAbove(newList); // Set the updated form object using setForm
+
+        } else {
+
+            const newForm = { ...Form }; // Create a copy of form object
+            (newForm as any)[FieldInfo.PropName] = e; // Update the specific field
+            SetFormAbove(newForm); // Set the updated form object using setForm
+
+        }
+
     };
 
-    const nextToField = [Field.Tick, Field.Int, Field.Dec, Field.Drop, Field.Date, Field.Time].includes(FieldInfo.Field)
-    // const nextToField = false;
+    var nextToField = [Field.Tick, Field.Int, Field.Dec, Field.Drop, Field.Date, Field.Time].includes(FieldInfo.Field)
+
+
     let picker = null;
     switch (FieldInfo.Field) {
 
@@ -95,17 +193,19 @@ export default function FormField({ FieldInfo, Form, SetFormAbove }: FormFieldPr
 
             picker = (
                 <>
-                    <TouchableOpacity
-                        onPress={() => setShow(true)}
-                        activeOpacity={0.7}
-                        className={`w-60 h-16 px-4 bg-black-100 rounded-2xl border-2 border-black-200 flex flex-row items-center ${show ? 'border-secondary' : ''}`}
-                    >
-                        <Text className="text-white text-lg flex flex-row">
-                            {displayDateTime}
-                        </Text>
-                    </TouchableOpacity>
+                    {(Platform.OS !== 'ios') && (
+                        <TouchableOpacity
+                            onPress={() => setShow(true)}
+                            activeOpacity={0.7}
+                            className={`w-60 h-16 px-4 bg-black-100 rounded-2xl border-2 border-black-200 flex flex-row items-center ${show ? 'border-secondary' : ''}`}
+                        >
+                            <Text className="text-white text-lg flex flex-row">
+                                {displayDateTime}
+                            </Text>
+                        </TouchableOpacity>
+                    )}
 
-                    {show && (
+                    {(show || Platform.OS === 'ios') && (
                         <DateTimePicker
                             testID="dateTimePicker"
                             value={value}
@@ -124,7 +224,11 @@ export default function FormField({ FieldInfo, Form, SetFormAbove }: FormFieldPr
             const [showPassword, setShowPassword] = useState(false);
 
             picker = (
-                <View className="w-full h-16 px-4 bg-black-100 rounded-2xl border-2 border-black-200 focus:border-secondary flex flex-row items-center">
+                //w-full
+                <View
+                    className="h-16 px-4 bg-black-100 rounded-2xl border-2 border-black-200 focus:border-secondary flex flex-row items-center"
+                    style={FieldInfo.smallTextBox ? { width: 252 } : {}}
+                >
                     <TextInput
                         className="flex-1 text-white font-psemibold text-base"
                         value={value != null ? value.toString() : ''}
@@ -134,7 +238,7 @@ export default function FormField({ FieldInfo, Form, SetFormAbove }: FormFieldPr
                         secureTextEntry={FieldInfo.PropName === 'password' && !showPassword}
                     />
 
-                    {FieldInfo.PropName === 'Password:' && (
+                    {FieldInfo.PropName === 'password' && (
                         <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                             <Image
                                 source={!showPassword ? icons.eye : icons.eyeHide}
@@ -195,29 +299,105 @@ export default function FormField({ FieldInfo, Form, SetFormAbove }: FormFieldPr
 
         case Field.Drop:
 
-            const [enabled, SetEnabled] = useState(true);
+
+            const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+            const [isDropDownPaused, setIsDropDownPaused] = useState(false);
+
+            function dropDownClicked() {
+
+                if (isDropdownOpen) {
+                    closeDropDown()
+                }
+                else if (!isDropDownPaused) {
+                    setIsDropdownOpen(true);
+                }
+            }
+
+            function closeDropDown() {
+                setIsDropdownOpen(false);
+                setIsDropDownPaused(true);
+                setTimeout(() => {
+                    setIsDropDownPaused(false);
+                }, 500); // 500 milliseconds = 0.5 seconds
+            }
+
+
+            function displayText() {
+                if (!FieldInfo.dropData || value == null) {
+                    return "Select an option"
+                }
+
+                var foundItem = FieldInfo.dropData.find(item => item.doc === value);
+
+                if (foundItem == null) {
+                    foundItem = FieldInfo.dropData.find(item => item.doc.$id === value.$id);
+                }
+
+                return foundItem?.value;
+
+            }
+
+            function handleDropChange(e: any) {
+
+                if (!FieldInfo.dropData) {
+                    return
+                }
+
+                const foundItem = FieldInfo.dropData.find(item => item.value === e);
+                handleChange(foundItem?.doc)
+            }
+
             picker = (
-                <View className="w-60 h-16 px-4 bg-black-100 rounded-2xl border-2 border-black-200 focus:border-secondary flex flex-row items-center" >
-                    <Picker
-                        selectedValue={value}
-                        style={{ flex: 1, color: 'white' }}
-                        dropdownIconColor="white"
-                        onValueChange={handleChange}
-                        onBlur={() => SetEnabled(true)}
-                        onFocus={() => SetEnabled(false)}
+                <View className={`w-60 h-16 px-4 bg-black-100 rounded-2xl border-2 flex-row ${isDropdownOpen ? 'border-secondary z-10' : 'border-black-200'}`} >
+                    <View className=" flex-row items-center ">
+                        <Text className="text-white text-lg flex flex-row ">{displayText()}</Text>
+                    </View>
+
+                    <TouchableOpacity
+                        onPress={dropDownClicked}
+                        style={{
+                            position: 'absolute',
+                            borderWidth: 0, //have a look at 2
+                            borderColor: 'blue',
+                            padding: 10,
+                            borderRadius: 5,
+                            width: 240,
+                            // height: 64
+                            // marginBottom: 10,
+                        }}
                     >
-                        <Picker.Item label="Please pick an option:" value={null} enabled={true} color={"grey"} />
-                        {FieldInfo.dropData != null &&
-                            FieldInfo.dropData.map((option, index) => (
-                                <Picker.Item key={index} label={option.label} value={option.value} />
-                                //enabled={option.value == value}
-                            ))}
 
 
-                    </Picker>
+                        <SelectList
+                            defaultOption={value}
+                            setSelected={handleDropChange}
+                            data={(FieldInfo.dropData ? FieldInfo.dropData : [])}
+                            // placeholder="Select an option"
+                            search={false}
+                            dropdownStyles={{
+                                backgroundColor: '#fafafa',
+                                // zIndex: isDropdownOpen ? 10 : 0, // Apply zIndex based on dropdown state
+                                display: isDropdownOpen ? "flex" : "none"
+                            }}
+                            inputStyles={{
+                                color: 'white',
+                                opacity: 0
+                                // display: 'none'
+                            }}
+
+                            boxStyles={{
+                                pointerEvents: 'none', // Prevent interaction when dropdown is closed
+                                borderWidth: 0,
+                                // display: "none",
+                                // paddingTop: 70
+                            }}
+                            onSelect={closeDropDown}
+                            dropdownShown={isDropdownOpen}
+                            maxHeight={1000}
+                        />
+                    </TouchableOpacity>
                 </View>
             )
-
             break;
 
         case Field.Int:
@@ -286,21 +466,39 @@ export default function FormField({ FieldInfo, Form, SetFormAbove }: FormFieldPr
     }
 
     return (
-        nextToField ? (
-            <View className={`space-y-2 mt-7 ${FieldInfo.otherStyles}`} style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Text className="flex-1 text-white text-base font-pmedium">{title}</Text>
-                {picker}
+        <>
+            {nextToField ? (
+                <View className={`mt-1 flex-row items-center ${FieldInfo.otherStyles}`}>
+                    <Text className="flex-1 text-white text-base font-pmedium">{title}</Text>
+                    {picker}
+                </View>
+            ) : (
+                <View className={`space-y-2 mt-1 ${FieldInfo.otherStyles}`}>
+                    <Text className="text-white text-base font-pmedium">{title}</Text>
+                    {picker}
+                </View>
+            )}
+
+            {/* {validationFailMessages.map((failMessage, index) =>
+
+                <View key={index} className="flex-row justify-end pt-2 pr-5">
+                    <Text className="text-myRed text-base font-pmedium">
+                        {failMessage}
+                    </Text>
+                </View>
+
+            )} */}
+            <View className="flex-row justify-end mb-2 mb-1 pr-5">
+                <Text className="text-myRed text-base font-pmedium">
+                    {validationFailMessages[0]}
+                </Text>
             </View>
-        ) : (
-            <View className={`space-y-2 mt-7 ${FieldInfo.otherStyles}`}>
-                <Text className="text-white text-base font-pmedium">{title}</Text>
-                {picker}
-            </View>
-        )
+        </>
     );
 }
+)
 
-
+export default FormField;
 
 
 
@@ -308,10 +506,22 @@ function capitalizeFirstLetter(string: string) {
     return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
-export function dropData(values: string[]): DropData[] {
+export function dropData(values: string[]) {
     return values.map(value => ({
-        label: value,
+        doc: value,
         value: value
     }));
 }
+
+export function dropDataPlaceDocument(places: Models.Document[]) {
+
+    // values.forEach(element => {
+
+    // });
+    return places.map(place => ({
+        doc: place,
+        value: String(place.name)
+    }));
+}
+
 

@@ -1,13 +1,42 @@
 import { jsonToCSV, readRemoteFile } from 'react-native-csv';
 import * as FileSystem from 'expo-file-system';
 import { shareAsync } from 'expo-sharing';
-import { Deer } from '@/objects/deerObjects';
+import { timeOnlyToStringPrint, Deer, deerDisplayName, deerPrint } from '@/objects/deerObjects';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable'
 
+const exportTableColumns = ["dateTime", "timeOnly", "place", "destination", "species", "weight", "age", "sex", "embryo", "milk", "comments"];
+
+function toPrintDeer(deer: any): Record<string, any> {
+    const newPrintDeer: Record<string, any> = {};
+
+    exportTableColumns.forEach(column => {
+
+        if (column == "timeOnly") {
+            newPrintDeer["Time"] = timeOnlyToStringPrint(deer["dateTime"]);
+        }
+        else {
+            newPrintDeer[deerDisplayName(column)] = deerPrint(column, deer[column]);
+        }
+
+    });
+
+    return newPrintDeer;
+}
+
+function toPrintDeerList(deerList: Deer[]): Record<string, any>[] {
+    return deerList.map(deer => toPrintDeer(deer));
+}
+
 export async function exportDeerCSV(deerList: Deer[]) {
 
-    const CSV = jsonToCSV(deerList);
+    const printDeerList = toPrintDeerList(deerList);
+
+    // printDeerList.forEach(deer => {
+    //    
+    // });
+
+    const CSV = jsonToCSV(printDeerList);
 
     // Name the File
     const fileName = `DeerData.csv`;
@@ -19,7 +48,7 @@ export async function exportDeerCSV(deerList: Deer[]) {
         await FileSystem.writeAsStringAsync(fileUri, CSV);
         shareAsync(fileUri);
     } catch (error) {
-        console.log("Error creating file" + error);
+        console.error("Error creating file" + error);
     }
 
 }
@@ -30,8 +59,9 @@ function csvToArray(csv: string) {
 }
 
 export async function exportDeerPDF(deerList: Deer[]) {
-    // Convert JSON data to CSV
-    const CSV = jsonToCSV(deerList);
+
+    const printDeerList = toPrintDeerList(deerList);
+    const CSV = jsonToCSV(printDeerList);
     const csvArray = csvToArray(CSV);
 
     const doc = new jsPDF('l', 'mm', 'a4'); // 'l' stands for landscape
@@ -54,7 +84,7 @@ export async function exportDeerPDF(deerList: Deer[]) {
         // Share the PDF
         await shareAsync(fileUri);
     } catch (error) {
-        console.log("Error creating file" + error);
+        console.error("Error creating file" + error);
     }
 }
 
@@ -67,22 +97,3 @@ function arrayBufferToBase64(arrayBuffer: ArrayBuffer): string {
     }
     return globalThis.btoa(binary); // Using globalThis.btoa for cross-environment compatibility
 }
-
-
-// const save = async (uri: string, filename: string, mimetype: string) => {
-//     if (Platform.OS === "android") {
-//         const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
-//         if (permissions.granted) {
-//             const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
-//             await FileSystem.StorageAccessFramework.createFileAsync(permissions.directoryUri, filename, mimetype)
-//                 .then(async (uri) => {
-//                     await FileSystem.writeAsStringAsync(uri, base64, { encoding: FileSystem.EncodingType.Base64 });
-//                 })
-//                 .catch(e => console.log(e));
-//         } else {
-//             shareAsync(uri);
-//         }
-//     } else {
-//         shareAsync(uri);
-//     }
-// };
