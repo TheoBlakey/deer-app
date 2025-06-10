@@ -215,7 +215,7 @@ export default function DeerList() {
                     Deer Records Table
                 </Text>
                 <CustomButton
-                    title={viewFilters ? "Close Filter" : "Filter Tabler"}
+                    title={viewFilters ? "Close Filter" : "Filter Table"}
                     handlePress={() => {
                         if (viewFilters) {
                             setDeerSearchForm(defaultSearch);

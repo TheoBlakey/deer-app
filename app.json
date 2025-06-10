@@ -1,8 +1,13 @@
 {
   "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "c2ac529d-39c8-48dd-9fd9-af4b2ff8c69b"
+      }
+    },
     "name": "deer-app",
     "slug": "deer-app",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "deer-app",
@@ -14,7 +19,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.deerandroid.deerapp"
+      "bundleIdentifier": "com.oxondeer.deermanagerapp"
     },
     "android": {
       "adaptiveIcon": {
@@ -33,6 +38,9 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ]
   }
 }

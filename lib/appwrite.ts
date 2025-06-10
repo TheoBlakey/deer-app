@@ -1,7 +1,18 @@
 import { Account, AppwriteException, Client, Databases, ID, Query } from 'react-native-appwrite';
 import Constants from 'expo-constants';
 
-const { endpoint = "", platform = "", projectId = "", storageId = "", databaseId = "", userCollectionId = "", deerCollectionId = "", placeCollectionId = "" } = Constants.expoConfig?.extra || {};
+import { APPWRITE_CONFIG } from './Constants';
+
+const {
+    endpoint = APPWRITE_CONFIG.endpoint,
+    platform = APPWRITE_CONFIG.platform,
+    projectId = APPWRITE_CONFIG.projectId,
+    storageId = APPWRITE_CONFIG.storageId,
+    databaseId = APPWRITE_CONFIG.databaseId,
+    userCollectionId = APPWRITE_CONFIG.userCollectionId,
+    deerCollectionId = APPWRITE_CONFIG.deerCollectionId,
+    placeCollectionId = APPWRITE_CONFIG.placeCollectionId,
+} = APPWRITE_CONFIG;
 
 export enum Collection {
     user = "user",

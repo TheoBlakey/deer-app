@@ -1,5 +1,5 @@
 import React, { ForwardedRef, forwardRef, useEffect, useImperativeHandle, useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, Image, Switch, Platform } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, Image, Switch, Platform, Modal } from "react-native";
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 
@@ -301,29 +301,35 @@ const FormField = forwardRef<any, FormFieldProps>(({ FieldInfo, Form, SetFormAbo
 
 
             const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-            const [isDropDownPaused, setIsDropDownPaused] = useState(false);
 
-            function dropDownClicked() {
+            // const [isDropDownPaused, setIsDropDownPaused] = useState(false);
 
-                if (isDropdownOpen) {
-                    closeDropDown()
-                }
-                else if (!isDropDownPaused) {
-                    setIsDropdownOpen(true);
-                }
-            }
+            // function dropDownClicked() {
 
-            function closeDropDown() {
-                setIsDropdownOpen(false);
-                setIsDropDownPaused(true);
-                setTimeout(() => {
-                    setIsDropDownPaused(false);
-                }, 500); // 500 milliseconds = 0.5 seconds
-            }
+            //     if (isDropdownOpen) {
+            //         closeDropDown()
+            //     }
+            //     else if (!isDropDownPaused) {
+            //         setIsDropdownOpen(true);
+            //     }
+            // }
 
+            // function closeDropDown() {
+            //     setIsDropdownOpen(false);
+            //     setIsDropDownPaused(true);
+            //     setTimeout(() => {
+            //         setIsDropDownPaused(false);
+            //     }, 500); // 500 milliseconds = 0.5 seconds
+            // }
+            var noData = !FieldInfo.dropData || FieldInfo.dropData.length == 0
 
             function displayText() {
-                if (!FieldInfo.dropData || value == null) {
+
+                if (!FieldInfo.dropData || noData) {
+                    return "No Data Found"
+                }
+
+                if (value == null) {
                     return "Select an option"
                 }
 
@@ -342,61 +348,41 @@ const FormField = forwardRef<any, FormFieldProps>(({ FieldInfo, Form, SetFormAbo
                 if (!FieldInfo.dropData) {
                     return
                 }
-
-                const foundItem = FieldInfo.dropData.find(item => item.value === e);
-                handleChange(foundItem?.doc)
+                handleChange(e.doc)
+                setIsDropdownOpen(false)
             }
 
             picker = (
-                <View className={`w-60 h-16 px-4 bg-black-100 rounded-2xl border-2 flex-row ${isDropdownOpen ? 'border-secondary z-10' : 'border-black-200'}`} >
-                    <View className=" flex-row items-center ">
-                        <Text className="text-white text-lg flex flex-row ">{displayText()}</Text>
-                    </View>
+                <>
+                    <TouchableOpacity className={`w-60 h-16 px-4 bg-black-100 rounded-2xl border-2 flex-row items-center ${isDropdownOpen ? 'border-secondary' : 'border-black-200'}`}
+                        onPress={() => !noData && setIsDropdownOpen(true)}
+                    >
+                        <Text className="text-white text-lg">{displayText()}</Text>
+                    </TouchableOpacity>
 
-                    <TouchableOpacity
-                        onPress={dropDownClicked}
-                        style={{
-                            position: 'absolute',
-                            borderWidth: 0, //have a look at 2
-                            borderColor: 'blue',
-                            padding: 10,
-                            borderRadius: 5,
-                            width: 240,
-                            // height: 64
-                            // marginBottom: 10,
+                    <Modal
+                        animationType="slide"
+                        transparent={true}
+                        visible={isDropdownOpen}
+                        onRequestClose={() => {
+                            setIsDropdownOpen(false)
                         }}
                     >
-
-
-                        <SelectList
-                            defaultOption={value}
-                            setSelected={handleDropChange}
-                            data={(FieldInfo.dropData ? FieldInfo.dropData : [])}
-                            // placeholder="Select an option"
-                            search={false}
-                            dropdownStyles={{
-                                backgroundColor: '#fafafa',
-                                // zIndex: isDropdownOpen ? 10 : 0, // Apply zIndex based on dropdown state
-                                display: isDropdownOpen ? "flex" : "none"
-                            }}
-                            inputStyles={{
-                                color: 'white',
-                                opacity: 0
-                                // display: 'none'
-                            }}
-
-                            boxStyles={{
-                                pointerEvents: 'none', // Prevent interaction when dropdown is closed
-                                borderWidth: 0,
-                                // display: "none",
-                                // paddingTop: 70
-                            }}
-                            onSelect={closeDropDown}
-                            dropdownShown={isDropdownOpen}
-                            maxHeight={1000}
-                        />
-                    </TouchableOpacity>
-                </View>
+                        <View className="flex-1 justify-center items-center mt-6">
+                            <View className="m-5 bg-white rounded-2xl p-9 items-center shadow-lg border-0 border-secondary">
+                                {FieldInfo.dropData?.map((dropData, index) => (
+                                    <TouchableOpacity
+                                        key={index}
+                                        className="w-60 h-16 px-4 bg-black-200 rounded-2xl border-2 flex-row items-center border-black-200 p-5 my-2"
+                                        onPress={() => handleDropChange(dropData)}
+                                    >
+                                        <Text className="text-white text-lg">{dropData.value}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </View>
+                    </Modal>
+                </>
             )
             break;
 
